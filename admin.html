@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard - CampusEvents</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" type="image/jpeg" href="images/logo.jpeg" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">
+    <img src="images/logo.jpeg" alt="CampusEvents logo" />
+    Campus<span>Events</span>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle navigation">☰</button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="events.html">Events</a>
+    <a href="register.html">Register</a>
+    <a href="admin.html" class="active">Admin</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1>Admin Dashboard</h1>
+  <p>Manage events and view participant registrations.</p>
+  <button class="btn btn-outline" onclick="Auth.logout()">Log Out</button>
+</section>
+
+<div class="container">
+
+  <div class="admin-grid" id="statsGrid"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="eventsTab">Manage Events</button>
+    <button class="tab-btn" data-tab="participantsTab">Participants</button>
+  </div>
+
+  <!-- EVENTS TAB -->
+  <div class="tab-content active" id="eventsTab">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+      <button class="btn" onclick="openEventModal()">+ Add New Event</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Date</th>
+            <th>Venue</th>
+            <th>Seats</th>
+            <th>Registered</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="eventsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PARTICIPANTS TAB -->
+  <div class="tab-content" id="participantsTab">
+    <div class="form-group" style="max-width:300px;">
+      <label for="eventFilterRegs">Filter by Event</label>
+      <select id="eventFilterRegs">
+        <option value="all">All Events</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Reg ID</th>
+            <th>Name</th>
+            <th>Event</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>College/Dept</th>
+            <th>Registered At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="regsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay hidden" id="eventModalOverlay">
+  <div class="modal">
+    <span class="modal-close" onclick="closeEventModal()">&times;</span>
+    <h3 id="modalTitle">Add New Event</h3>
+    <form id="eventForm">
+      <input type="hidden" id="editId" />
+      <div class="form-group">
+        <label for="title">Event Title</label>
+        <input type="text" id="title" required />
+      </div>
+      <div class="form-group">
+        <label for="college">College Name</label>
+        <input type="text" id="college" required />
+      </div>
+      <div class="form-group">
+        <label for="poster">Upload Poster</label>
+        <input type="file" id="poster" accept="image/*" />
+      </div>
+
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" required>
+          <option value="Technical">Technical</option>
+          <option value="Workshop">Workshop</option>
+          <option value="Cultural">Cultural</option>
+          <option value="Seminar">Seminar</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="date">Date</label>
+        <input type="date" id="date" required />
+      </div>
+      <div class="form-group">
+        <label for="time">Time</label>
+        <input type="text" id="time" required placeholder="e.g. 10:00 AM" />
+      </div>
+      <div class="form-group">
+        <label for="venue">Venue</label>
+        <input type="text" id="venue" required />
+      </div>
+      <div class="form-group">
+        <label for="seats">Total Seats</label>
+        <input type="number" id="seats" required min="1" />
+      </div>
+      <div class="form-group">
+        <label for="icon">Icon (emoji)</label>
+        <input type="text" id="icon" placeholder="e.g. 🎤" />
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" rows="4" required></textarea>
+      </div>
+      <button type="submit" class="btn" style="width:100%;">Save Event</button>
+    </form>
+  </div>
+</div>
+
+<footer>
+  &copy; 2026 CampusEvents Portal. Built for Web Development Internship — Wyntrix Innovation OPC Pvt Ltd.
+</footer>
+
+<script src="js/data.js"></script>
+
+<script>
+  /* ----- AUTH GUARD ----- */
+  //Auth.requireLogin();
+</script>
+<script>
+  /* ----- TAB SWITCHING ----- */
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  /* ----- STATS ----- */
+  function Stats() {
+    const events = DB.getEvents();
+    const regs = DB.getRegs();
+    const totalSeats = events.reduce((sum, e) => sum + Number(e.seats), 0);
+    document.getElementById("statsGrid").innerHTML = `
+      <div class="stat-card"><h2>${events.length}</h2><p>Total Events</p></div>
+      <div class="stat-card"><h2>${regs.length}</h2><p>Total Registrations</p></div>
+      <div class="stat-card"><h2>${totalSeats}</h2><p>Total Seat Capacity</p></div>
+      <div class="stat-card"><h2>${Math.max(0, totalSeats - regs.length)}</h2><p>Seats Available</p></div>
+    `;
+  }
+
+  /* ----- EVENTS TABLE ----- */
+  function EventsTable() {
+    const events = DB.getEvents();
+    document.getElementById("eventsTableBody").innerHTML = events.map(e => `
+      <tr>
+        <td>${e.icon || ""} ${e.title}</td>
+        <td><span class="${tagClass(e.category)}">${e.category}</span></td>
+        <td>${formatDate(e.date)}</td>
+        <td>${e.venue}</td>
+        <td>${e.seats}</td>
+        <td>${DB.countRegsForEvent(e.id)}</td>
+        <td>
+          <button class="btn btn-small btn-secondary" onclick="editEvent('${e.id}')">Edit</button>
+          <button class="btn btn-small btn-danger" onclick="removeEvent('${e.id}')">Delete</button>
+        </td>
+      </tr>
+    `).join("") || `<tr><td colspan="7">No events found.</td></tr>`;
+  }
+
+  /* ----- PARTICIPANTS TABLE ----- */
+  function populateRegFilter() {
+    const select = document.getElementById("eventFilterRegs");
+    const events = DB.getEvents();
+    const current = select.value;
+    select.innerHTML = `<option value="all">All Events</option>` +
+      events.map(e => `<option value="${e.id}">${e.title}</option>`).join("");
+    if (current && [...select.options].some(o => o.value === current)) {
+      select.value = current;
+    }
+  }
+
+  function RegsTable() {
+    const filter = document.getElementById("eventFilterRegs").value;
+    let regs = DB.getRegs();
+    if (filter !== "all") regs = regs.filter(r => r.eventId === filter);
+
+    document.getElementById("regsTableBody").innerHTML = regs.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.name}</td>
+        <td>${r.eventTitle}</td>
+        <td>${r.email}</td>
+        <td>${r.phone}</td>
+        <td>${r.college}</td>
+        <td>${r.registeredAt}</td>
+        <td><button class="btn btn-small btn-danger" onclick="removeReg('${r.id}')">Remove</button></td>
+      </tr>
+    `).join("") || `<tr><td colspan="8">No registrations found.</td></tr>`;
+  }
+
+  document.getElementById("eventFilterRegs").addEventListener("change", RegsTable);
+
+  /* ----- MODAL: ADD/EDIT EVENT ----- */
+  const overlay = document.getElementById("eventModalOverlay");
+  const eventForm = document.getElementById("eventForm");
+
+  function openEventModal() {
+    document.getElementById("modalTitle").textContent = "Add New Event";
+    eventForm.reset();
+    document.getElementById("editId").value = "";
+    overlay.classList.remove("hidden");
+  }
+
+  function closeEventModal() {
+    overlay.classList.add("hidden");
+  }
+
+  // Close modal when clicking outside of it
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeEventModal();
+  });
+
+  function editEvent(id) {
+    const e = DB.getEvent(id);
+    if (!e) return;
+    document.getElementById("modalTitle").textContent = "Edit Event";
+    document.getElementById("editId").value = e.id;
+    document.getElementById("title").value = e.title;
+    document.getElementById("college").value = e.college || "";
+    
+    
+    document.getElementById("category").value = e.category;
+    document.getElementById("date").value = e.date;
+    document.getElementById("time").value = e.time;
+    document.getElementById("venue").value = e.venue;
+    document.getElementById("seats").value = e.seats;
+    document.getElementById("icon").value = e.icon || "";
+    document.getElementById("description").value = e.description;
+    overlay.classList.remove("hidden");
+  }
+
+  function removeEvent(id) {
+    if (confirm("Delete this event and all its registrations?")) {
+      DB.deleteEvent(id);
+      refreshAll();
+    }
+  }
+
+  function removeReg(id) {
+    if (confirm("Remove this registration?")) {
+      DB.deleteReg(id);
+      refreshAll();
+    }
+  }
+
+  eventForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const editId = document.getElementById("editId").value;
+
+    const seatsVal = Number(document.getElementById("seats").value);
+    if (editId) {
+      const currentRegs = DB.countRegsForEvent(editId);
+      if (seatsVal < currentRegs) {
+        alert(`Cannot set seats below current registrations (${currentRegs}).`);
+        return;
+      }
+    }
+
+    
+    const posterFile = document.getElementById("poster").files[0];
+
+if (posterFile) {
+    const reader = new FileReader();
+
+    reader.onload = function () {
+        const data = {
+            title: document.getElementById("title").value.trim(),
+            college: document.getElementById("college").value.trim(),
+            poster: reader.result,
+            category: document.getElementById("category").value,
+            date: document.getElementById("date").value,
+            time: document.getElementById("time").value.trim(),
+            venue: document.getElementById("venue").value.trim(),
+            seats: seatsVal,
+            icon: document.getElementById("icon").value.trim() || "📌",
+            description: document.getElementById("description").value.trim()
+        };
+
+        if (editId) {
+            DB.updateEvent(editId, data);
+        } else {
+            DB.addEvent(data);
+        }
+
+        closeEventModal();
+        refreshAll();
+    };
+
+    reader.readAsDataURL(posterFile);
+    return;
+}
+  });
+    
+
+  /* ----- REFRESH ----- */
+  function refreshAll() {
+    Stats();
+    EventsTable();
+    populateRegFilter();
+    RegsTable();
+  }
+
+  refreshAll();
+
+</script>
+
+</body>
+
+
+</html>

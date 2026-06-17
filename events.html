@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Events - CampusEvents</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" type="image/jpeg" href="images/logo.jpeg" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">
+    <img src="images/logo.jpeg" alt="CampusEvents logo" />
+    Campus<span>Events</span>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle navigation">☰</button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="events.html" class="active">Events</a>
+    <a href="register.html">Register</a>
+    <a href="admin.html">Admin</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1>Upcoming Events</h1>
+  <p>Explore all symposiums, workshops, seminars and cultural events.</p>
+</section>
+
+<div class="container">
+  <div class="form-group" style="max-width:300px;margin-bottom:1.5rem;">
+    <label for="categoryFilter">Filter by Category</label>
+    <select id="categoryFilter">
+      <option value="all">All Categories</option>
+      <option value="Technical">Technical</option>
+      <option value="Workshop">Workshop</option>
+      <option value="Cultural">Cultural</option>
+      <option value="Seminar">Seminar</option>
+    </select>
+  </div>
+
+  <div class="event-grid" id="eventGrid"></div>
+</div>
+
+<footer>
+  &copy; 2026 CampusEvents Portal. Built for Web Development Internship — Wyntrix Innovation OPC Pvt Ltd.
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+ const grid = document.getElementById("eventGrid");
+const filter = document.getElementById("categoryFilter");
+
+function render() {
+
+  const cat = filter.value;
+  let events = DB.getEvents();
+
+  if (cat !== "all") {
+    events = events.filter(e => e.category === cat);
+  }
+
+  if (events.length === 0) {
+    grid.innerHTML = `<p>No events found in this category.</p>`;
+    return;
+  }
+
+  grid.innerHTML = events.map(e => {
+    const seatsLeft = DB.seatsLeft(e);
+
+    return `
+    <div class="event-card">
+
+      <div class="event-banner">
+        ${
+          e.poster
+          ? `<img src="${e.poster}" alt="${e.title}" class="event-poster">`
+          : `<div class="icon-badge">${e.icon}</div>`
+        }
+      </div>
+
+      <div class="event-body">
+        <span class="${tagClass(e.category)}">${e.category}</span>
+
+        <h3>${e.title}</h3>
+
+        <p class="college-name">
+          ${e.college || "College Name"}
+        </p>
+
+        <div class="event-meta">📅 ${formatDate(e.date)} &nbsp; 🕒 ${e.time}</div>
+        <div class="event-meta">📍 ${e.venue}</div>
+
+        <div class="event-footer">
+          <span class="event-meta">
+            ${seatsLeft > 0 ? seatsLeft + " seats left" : "Full"}
+          </span>
+
+          <a href="event-details.html?id=${e.id}" class="btn btn-small">
+            View Details
+          </a>
+        </div>
+      </div>
+
+    </div>
+    `;
+  }).join("");
+}
+
+filter.addEventListener("change", render);
+
+render();
+</script>
+</body>
+</html>

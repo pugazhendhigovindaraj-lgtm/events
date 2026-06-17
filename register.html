@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register - CampusEvents</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" type="image/jpeg" href="images/logo.jpeg" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">
+    <img src="images/logo.jpeg" alt="CampusEvents logo" />
+    Campus<span>Events</span>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle navigation">☰</button>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="events.html">Events</a>
+    <a href="register.html" class="active">Register</a>
+    <a href="admin.html">Admin</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1>Event Registration</h1>
+  <p>Fill in your details below to register for an event.</p>
+</section>
+
+<div class="container">
+
+  <div id="confirmationBox" class="hidden">
+    <div class="alert alert-success" style="margin-top:0;">
+      🎉 Registration Successful! A confirmation has been generated below.
+    </div>
+    <div class="info-card" id="confirmationDetails"></div>
+    <div style="text-align:center;margin-top:1rem;">
+      <a href="events.html" class="btn">Browse More Events</a>
+      <button class="btn btn-secondary" onclick="newRegistration()">Register Another</button>
+    </div>
+  </div>
+
+  <form class="form-card" id="regForm">
+    <div class="form-group">
+      <label for="eventSelect">Select Event</label>
+      <select id="eventSelect" required></select>
+    </div>
+
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" required placeholder="Enter your full name" />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" required placeholder="you@example.com" />
+    </div>
+
+    <div class="form-group">
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" required pattern="[0-9]{10}" placeholder="10-digit mobile number" />
+    </div>
+
+    <div class="form-group">
+      <label for="college">College / Department</label>
+      <input type="text" id="college" required placeholder="e.g. CSE, III Year" />
+    </div>
+
+    <div id="formMsg"></div>
+
+    <button type="submit" class="btn" style="width:100%;">Submit Registration</button>
+  </form>
+</div>
+
+<footer>
+  &copy; 2026 CampusEvents Portal. Built for Web Development Internship — Wyntrix Innovation OPC Pvt Ltd.
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  const eventSelect = document.getElementById("eventSelect");
+  const form = document.getElementById("regForm");
+  const confirmationBox = document.getElementById("confirmationBox");
+  const confirmationDetails = document.getElementById("confirmationDetails");
+  const formMsg = document.getElementById("formMsg");
+
+  function populateEvents() {
+    const events = DB.getEvents();
+
+    if (events.length === 0) {
+      eventSelect.innerHTML = `<option value="">No events available</option>`;
+      return;
+    }
+
+    eventSelect.innerHTML = events.map(e => {
+      const left = DB.seatsLeft(e);
+      return `<option value="${e.id}" ${left <= 0 ? "disabled" : ""}>
+        ${e.title} — ${formatDate(e.date)} ${left <= 0 ? "(Full)" : `(${left} seats left)`}
+      </option>`;
+    }).join("");
+
+    const preselect = getParam("id");
+    if (preselect) eventSelect.value = preselect;
+  }
+  populateEvents();
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    formMsg.innerHTML = "";
+
+    const eventId = eventSelect.value;
+    const event = DB.getEvent(eventId);
+
+    if (!event) {
+      formMsg.innerHTML = `<div class="alert alert-error">Please select a valid event.</div>`;
+      return;
+    }
+    if (DB.seatsLeft(event) <= 0) {
+      formMsg.innerHTML = `<div class="alert alert-error">Sorry, this event is full.</div>`;
+      return;
+    }
+
+    const phone = document.getElementById("phone").value.trim();
+    if (!/^[0-9]{10}$/.test(phone)) {
+      formMsg.innerHTML = `<div class="alert alert-error">Please enter a valid 10-digit phone number.</div>`;
+      return;
+    }
+
+    const reg = DB.addReg({
+      eventId: event.id,
+      eventTitle: event.title,
+      name: document.getElementById("name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      phone: phone,
+      college: document.getElementById("college").value.trim()
+    });
+
+    confirmationDetails.innerHTML = `
+      <div class="info-row"><span>Registration ID</span><span>${reg.id}</span></div>
+      <div class="info-row"><span>Name</span><span>${reg.name}</span></div>
+      <div class="info-row"><span>Event</span><span>${reg.eventTitle}</span></div>
+      <div class="info-row"><span>Date</span><span>${formatDate(event.date)} at ${event.time}</span></div>
+      <div class="info-row"><span>Venue</span><span>${event.venue}</span></div>
+      <div class="info-row"><span>Email</span><span>${reg.email}</span></div>
+      <div class="info-row"><span>Phone</span><span>${reg.phone}</span></div>
+      <div class="info-row"><span>Registered At</span><span>${reg.registeredAt}</span></div>
+    `;
+
+    form.classList.add("hidden");
+    confirmationBox.classList.remove("hidden");
+  });
+
+  function newRegistration() {
+    form.reset();
+    populateEvents();
+    form.classList.remove("hidden");
+    confirmationBox.classList.add("hidden");
+  }
+</script>
+</body>
+</html>
